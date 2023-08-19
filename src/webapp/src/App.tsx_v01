@@ -1,0 +1,103 @@
+import { useState, useEffect } from "react";
+import axios from "axios"
+import './App.css';
+
+const width  = 255;
+const height = 255;
+
+export default function App(){
+  const [resultTxt, setResultTxt] = useState("");
+  const [resultGx,   setResultGx]   = useState("");
+  const [resultGy,   setResultGy]   = useState("");
+  const [resultGz,   setResultGz]   = useState("");
+  const [resultTemp, setResultTemp] = useState("");
+  
+  const [png, setPng] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchData = () => {
+      console.log("データを取得します");
+     
+      //canvas: HTMLCanvasElement;
+      //ctx: CanvasRenderingContext2D;
+      
+      const canvas = document.createElement('canvas') as HTMLCanvasElement;
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+      
+      axios
+        .get(`http://localhost:5000/data`)
+        .then((res) => {
+
+          // APIがうまく動作していないときのエラー
+          if (res.status !== 200) {
+            throw new Error("APIがうまく動作していないようです");
+          } else {
+
+            setResultTxt("データ取得成功");
+
+           // カンマ区切りで数値を分割する            
+            var result = res.data.split(',');
+            setResultGx(result[0]);    // 加速度gx
+            setResultGy(result[1]);    // 加速度gy
+            setResultGz(result[2]);    // 加速度gz
+            setResultTemp(result[3]);  // 温度
+
+            // 描画
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#888888';
+            ctx.fillRect(0, 0, width, height);
+            ctx.beginPath();
+            ctx.fillStyle = '#222222';
+            ctx.arc(width/2 + (Number(result[0])-10)*100, height/2, 10, 0*Math.PI/180, 360*Math.PI/180, false);
+            ctx.fill();
+            setPng(canvas.toDataURL());
+
+            return;
+          }
+        })
+        .catch((err) =>
+          setResultTxt(`データがうまく取得できませんでした。${err}`)
+        );
+  };
+
+  // 250ms周期で更新する
+  setInterval(() => {
+    fetchData();
+  }, 250);
+  
+}, []);
+
+const h1Style = {
+  fontSize: "1.2em",
+  color: "#b09851",
+  background: "#e9e1c8",
+  padding: "5px 10px"
+};
+
+return (
+  <div>
+    <div>
+      <h1 style={h1Style}>サンプル</h1>
+        <p>{resultTxt}</p>
+        <p>{resultGx}</p>
+        <p>{resultGy}</p>
+        <p>{resultGz}</p>
+        <p>{resultTemp}</p>
+    </div>
+    <div>
+      <h1 style={h1Style}>画像生成</h1>
+      <h4>生成</h4>
+      {png && (
+        <div className="comp" style={{ display: 'flex' }}>
+          <img alt="icon" src={png} />
+        </div>
+      )}
+    </div>
+  </div>
+  );
+}
+
+
+//          <img alt="round icon" src={png} style={{ borderRadius: '100%' }} />
